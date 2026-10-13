@@ -1,0 +1,2 @@
+[console_scripts]
+elte-digest = elte_digest.cli:main

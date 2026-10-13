@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: elte-daily-digest
+Version: 0.1.0
+Summary: Daily email TL;DR digest for new ELTE news and events.
+Requires-Python: >=3.11
+Requires-Dist: beautifulsoup4<5,>=4.12
+Requires-Dist: requests<3,>=2.31

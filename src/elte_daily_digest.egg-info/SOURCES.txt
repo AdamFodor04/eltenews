@@ -1,0 +1,16 @@
+README.md
+pyproject.toml
+src/elte_daily_digest.egg-info/PKG-INFO
+src/elte_daily_digest.egg-info/SOURCES.txt
+src/elte_daily_digest.egg-info/dependency_links.txt
+src/elte_daily_digest.egg-info/entry_points.txt
+src/elte_daily_digest.egg-info/requires.txt
+src/elte_daily_digest.egg-info/top_level.txt
+src/elte_digest/__init__.py
+src/elte_digest/cli.py
+src/elte_digest/config.py
+src/elte_digest/mailer.py
+src/elte_digest/models.py
+src/elte_digest/scraper.py
+src/elte_digest/store.py
+src/elte_digest/summarizer.py

@@ -1,0 +1,45 @@
+from dataclasses import dataclass
+import os
+
+
+@dataclass(frozen=True)
+class Settings:
+    index_url: str = "https://www.elte.hu/hirek-esemenyek"
+    database_path: str = "data/digest.db"
+    openai_api_key: str = ""
+    openai_base_url: str = "https://api.openai.com/v1"
+    openai_model: str = "gpt-4o-mini"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    mail_from: str = ""
+    mail_to: str = ""
+
+    @classmethod
+    def from_environment(cls) -> "Settings":
+        return cls(
+            index_url=os.getenv("ELTE_INDEX_URL", cls.index_url),
+            database_path=os.getenv("ELTE_DATABASE_PATH", cls.database_path),
+            openai_api_key=os.getenv("OPENAI_API_KEY", ""),
+            openai_base_url=os.getenv("OPENAI_BASE_URL", cls.openai_base_url).rstrip("/"),
+            openai_model=os.getenv("OPENAI_MODEL", cls.openai_model),
+            smtp_host=os.getenv("SMTP_HOST", ""),
+            smtp_port=int(os.getenv("SMTP_PORT", str(cls.smtp_port))),
+            smtp_username=os.getenv("SMTP_USERNAME", ""),
+            smtp_password=os.getenv("SMTP_PASSWORD", ""),
+            mail_from=os.getenv("MAIL_FROM", ""),
+            mail_to=os.getenv("MAIL_TO", ""),
+        )
+
+    def validate_for_delivery(self) -> None:
+        missing = [
+            name for name, value in {
+                "OPENAI_API_KEY": self.openai_api_key,
+                "SMTP_HOST": self.smtp_host,
+                "MAIL_FROM": self.mail_from,
+                "MAIL_TO": self.mail_to,
+            }.items() if not value
+        ]
+        if missing:
+            raise RuntimeError("Missing required configuration: " + ", ".join(missing))
