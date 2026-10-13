@@ -18,14 +18,18 @@ class Settings:
 
     @classmethod
     def from_environment(cls) -> "Settings":
+        def env(name: str, default: str) -> str:
+            value = os.getenv(name, "").strip()
+            return value or default
+
         return cls(
-            index_url=os.getenv("ELTE_INDEX_URL", cls.index_url),
-            database_path=os.getenv("ELTE_DATABASE_PATH", cls.database_path),
+            index_url=env("ELTE_INDEX_URL", cls.index_url),
+            database_path=env("ELTE_DATABASE_PATH", cls.database_path),
             openai_api_key=os.getenv("OPENAI_API_KEY", ""),
-            openai_base_url=os.getenv("OPENAI_BASE_URL", cls.openai_base_url).rstrip("/"),
-            openai_model=os.getenv("OPENAI_MODEL", cls.openai_model),
+            openai_base_url=env("OPENAI_BASE_URL", cls.openai_base_url).rstrip("/"),
+            openai_model=env("OPENAI_MODEL", cls.openai_model),
             smtp_host=os.getenv("SMTP_HOST", ""),
-            smtp_port=int(os.getenv("SMTP_PORT", str(cls.smtp_port))),
+            smtp_port=int(env("SMTP_PORT", str(cls.smtp_port))),
             smtp_username=os.getenv("SMTP_USERNAME", ""),
             smtp_password=os.getenv("SMTP_PASSWORD", ""),
             mail_from=os.getenv("MAIL_FROM", ""),
