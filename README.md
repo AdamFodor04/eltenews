@@ -28,6 +28,12 @@ elte-digest
 
 The normal command only emails links not already stored in `data/digest.db`. If fetching, summarization, or email delivery fails, it exits non-zero and leaves unemailed items in the database for the next run.
 
+The OpenAI API may return HTTP 429 when the account has no remaining quota or
+when its rate limit is exceeded. The program retries transient 429 responses
+three times, then stops with an explicit error instead of silently dropping
+items. A first run must use `--seed`; otherwise all currently visible links
+will be treated as new and may exceed the API quota.
+
 ## Daily GitHub Actions run
 
 The included workflow runs daily at 06:15 UTC and can also be started manually. Add the variables/secrets listed above in the repository settings. Run `elte-digest --seed` locally once and commit `data/digest.db` before enabling the schedule, or the first scheduled run will summarize every currently visible item.

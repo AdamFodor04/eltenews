@@ -1,4 +1,5 @@
 import json
+import time
 import requests
 
 from .config import Settings
@@ -21,11 +22,27 @@ def summarize(article: Article, settings: Settings, session: requests.Session | 
         ],
     }
     client = session or requests.Session()
-    response = client.post(
-        f"{settings.openai_base_url}/chat/completions",
-        headers={"Authorization": f"Bearer {settings.openai_api_key}", "Content-Type": "application/json"},
-        data=json.dumps(payload), timeout=90,
-    )
+    for attempt in range(3):
+        response = client.post(
+            f"{settings.openai_base_url}/chat/completions",
+            headers={"Authorization": f"Bearer {settings.openai_api_key}", "Content-Type": "application/json"},
+            data=json.dumps(payload), timeout=90,
+        )
+        if response.status_code != 429 or attempt == 2:
+            break
+        retry_after = response.headers.get("Retry-After")
+        try:
+            delay = min(float(retry_after), 60) if retry_after else 2 ** attempt
+        except ValueError:
+            delay = 2 ** attempt
+        time.sleep(delay)
+    if response.status_code == 429:
+        detail = response.text[:500].replace("\n", " ")
+        raise RuntimeError(
+            "OpenAI rate limit/quota exceeded after 3 attempts. "
+            "Check the API account billing and limits. "
+            f"Response: {detail}"
+        )
     response.raise_for_status()
     try:
         content = response.json()["choices"][0]["message"]["content"].strip()
