@@ -21,8 +21,9 @@ def main() -> None:
     store = Store(settings.database_path)
     session = requests.Session()
     try:
-        found = discover_articles(settings.index_url, session)
-        logging.info("Discovered %d article/event links", len(found))
+        found = discover_articles(settings.index_urls, session)
+        logging.info("Checked %d ELTE sections and discovered %d article/event links",
+                     len(settings.index_urls), len(found))
         new_items = [item for item in found if not store.known(item.url)]
         if args.seed:
             for item in new_items:

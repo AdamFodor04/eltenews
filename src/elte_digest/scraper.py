@@ -25,39 +25,41 @@ def _links(index_url: str, html: str) -> Iterable[tuple[str, str]]:
             yield href, text
 
 
-def discover_articles(index_url: str, session: requests.Session | None = None) -> list[Article]:
+def discover_articles(index_urls: Iterable[str], session: requests.Session | None = None) -> list[Article]:
     client = session or requests.Session()
-    response = client.get(index_url, headers={"User-Agent": USER_AGENT}, timeout=30)
-    response.raise_for_status()
-    soup = BeautifulSoup(response.text, "html.parser")
-    root_path = urlparse(index_url).path.rstrip("/")
     articles: dict[str, Article] = {}
-    # ELTE has used several templates over time. The article-like containers and
-    # links are intentionally detected by structure rather than brittle URL IDs.
-    for container in soup.select("article, .news-item, .event-item, .list-item, .teaser, .card"):
-        anchor = container.select_one("a[href]")
-        if not anchor:
-            continue
-        url = urldefrag(urljoin(index_url, anchor["href"])).url
-        parsed = urlparse(url)
-        if parsed.netloc != urlparse(index_url).netloc or parsed.path.rstrip("/") == root_path:
-            continue
-        title = _clean((container.select_one("h1, h2, h3, h4, .title") or anchor).get_text(" ", strip=True))
-        if len(title) < 8:
-            continue
-        date_node = container.select_one("time, .date, .published")
-        category_node = container.select_one(".category, .type, .label")
-        articles[url] = Article(url, title, date_node.get_text(" ", strip=True) if date_node else None,
-                                category_node.get_text(" ", strip=True) if category_node else None, "")
-
-    # Fallback for templates without semantic list containers: retain links that
-    # look like content links, excluding navigation and the known landing page.
-    if not articles:
-        for url, text in _links(index_url, response.text):
-            parsed = urlparse(url)
-            if parsed.path.rstrip("/") == root_path or len(text) < 12:
+    for index_url in index_urls:
+        response = client.get(index_url, headers={"User-Agent": USER_AGENT}, timeout=30)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+        root = urlparse(index_url)
+        root_path = root.path.rstrip("/")
+        category = root_path.rsplit("/", 1)[-1]
+        containers = soup.select("article, .news-item, .event-item, .list-item, .teaser, .card")
+        if not containers:
+            content = soup.select_one("main, .content, .page-content")
+            containers = content.select("a[href]") if content else []
+        for container in containers:
+            anchor = container if container.name == "a" else container.select_one("a[href]")
+            if not anchor:
                 continue
-            articles[url] = Article(url, text, None, None, "")
+            url = urldefrag(urljoin(index_url, anchor["href"])).url
+            parsed = urlparse(url)
+            if parsed.scheme not in {"http", "https"} or parsed.netloc != root.netloc:
+                continue
+            if parsed.path.rstrip("/") in {root_path, ""}:
+                continue
+            title_source = container if container.name == "a" else (
+                container.select_one("h1, h2, h3, h4, .title") or anchor
+            )
+            title = _clean(title_source.get_text(" ", strip=True))
+            if len(title) < 12:
+                continue
+            date_node = None if container.name == "a" else container.select_one("time, .date, .published")
+            articles[url] = Article(
+                url, title, date_node.get_text(" ", strip=True) if date_node else None,
+                category, "",
+            )
     return list(articles.values())
 
 
