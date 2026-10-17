@@ -27,17 +27,31 @@ def main() -> None:
         new_items = [item for item in found if not store.known(item.url)]
         if args.seed:
             for item in new_items:
-                store.save(load_article(item, session))
+                store.save(load_article(item, session), seeded=True)
             logging.info("Seeded %d items", len(new_items))
             return
-        settings.validate_for_delivery()
         summaries = []
+        pending_urls = set()
+        for pending in store.pending():
+            pending_urls.add(pending.article.url if isinstance(pending, Summary) else pending.url)
+            if isinstance(pending, Summary):
+                summaries.append((pending.article, pending.text))
+            else:
+                text = summarize(pending, settings, session)
+                store.save(pending, text)
+                summaries.append((pending, text))
         for item in new_items:
+            if item.url in pending_urls:
+                continue
             loaded = load_article(item, session)
             text = summarize(loaded, settings, session)
             store.save(loaded, text)
             summaries.append((loaded, text))
         digest = [Summary(article, text) for article, text in summaries]
+        if not digest:
+            logging.info("No new summaries to email")
+            return
+        settings.validate_for_delivery()
         send_digest(digest, settings)
         store.mark_emailed([item.article.url for item in digest])
         logging.info("Emailed %d summaries", len(digest))

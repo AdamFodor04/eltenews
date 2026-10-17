@@ -35,7 +35,7 @@ elte-digest --seed
 elte-digest
 ```
 
-The normal command only emails links not already stored in `data/digest.db`. If fetching, summarization, or email delivery fails, it exits non-zero and leaves unemailed items in the database for the next run.
+The normal command emails links that have not been successfully emailed yet. If fetching, summarization, or email delivery fails, it exits non-zero and leaves unemailed items in the database for the next run; already summarized items are retried without another summarization request.
 
 The OpenAI API may return HTTP 429 when the account has no remaining quota or
 when its rate limit is exceeded. The program retries transient 429 responses
